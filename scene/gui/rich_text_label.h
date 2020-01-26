@@ -73,6 +73,8 @@ public:
 		ITEM_WAVE,
 		ITEM_TORNADO,
 		ITEM_RAINBOW,
+		ITEM_BGCOLOR,
+		ITEM_FGCOLOR,
 		ITEM_META,
 		ITEM_CUSTOMFX
 	};
@@ -287,6 +289,16 @@ private:
 		}
 	};
 
+	struct ItemBGColor : public Item {
+		Color color;
+		ItemBGColor() { type = ITEM_BGCOLOR; }
+	};
+
+	struct ItemFGColor : public Item {
+		Color color;
+		ItemFGColor() { type = ITEM_FGCOLOR; }
+	};
+
 	struct ItemCustomFX : public ItemFX {
 		Ref<CharFXTransform> char_fx_transform;
 		Ref<RichTextEffect> custom_effect;
@@ -378,6 +390,8 @@ private:
 	bool _find_underline(Item *p_item);
 	bool _find_strikethrough(Item *p_item);
 	bool _find_meta(Item *p_item, Variant *r_meta, ItemMeta **r_item = NULL);
+	Color _find_bgcolor(Item *p_item);
+	Color _find_fgcolor(Item *p_item);
 	bool _find_layout_subitem(Item *from, Item *to);
 	bool _find_by_type(Item *p_item, ItemType p_type);
 	void _fetch_item_fx_stack(Item *p_item, Vector<ItemFX *> &r_stack);
@@ -400,6 +414,8 @@ private:
 	void _update_all_lines();
 
 	int fixed_width;
+
+	Color parse_color(const String &p_color);
 
 protected:
 	void _notification(int p_what);
@@ -429,6 +445,8 @@ public:
 	void push_wave(float p_frequency, float p_amplitude);
 	void push_tornado(float p_frequency, float p_radius);
 	void push_rainbow(float p_saturation, float p_value, float p_frequency);
+	void push_bgcolor(const Color &p_color);
+	void push_fgcolor(const Color &p_color);
 	void push_customfx(Ref<RichTextEffect> p_custom_effect, Dictionary p_environment);
 	void set_table_column_expand(int p_column, bool p_expand, int p_ratio = 1);
 	int get_current_table_column() const;

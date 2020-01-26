@@ -345,6 +345,9 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 
 				Color color;
 				Color font_color_shadow;
+				Color fgcolor;
+				Color bgcolor;
+
 				bool underline = false;
 				bool strikethrough = false;
 				ItemFade *fade = NULL;
@@ -357,6 +360,10 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 				if (p_mode == PROCESS_DRAW) {
 					color = _find_color(text, p_base_color);
 					font_color_shadow = _find_color(text, p_font_color_shadow);
+
+					fgcolor = _find_fgcolor(text);
+					bgcolor = _find_bgcolor(text);
+
 					if (_find_underline(text) || (_find_meta(text, &meta) && underline_meta)) {
 						underline = true;
 					} else if (_find_strikethrough(text)) {
@@ -548,27 +555,37 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 
 								if (visible) {
 
+									if (bgcolor.a > 0) {
+										cw = font->get_char_size(fx_char, c[i + 1]).x;
+										draw_rect(Rect2(p_ofs.x + pofs, p_ofs.y + y, cw, lh), bgcolor);
+									} else if (fgcolor.a > 0) {
+										cw = font->get_char_size(fx_char, c[i + 1]).x;
+										draw_rect(Rect2(p_ofs.x + pofs, p_ofs.y + y, cw, lh), fgcolor);
+									}
+
 									if (selected) {
 										cw = font->get_char_size(fx_char, c[i + 1]).x;
 										draw_rect(Rect2(p_ofs.x + pofs, p_ofs.y + y, cw, lh), selection_bg);
 									}
 
-									if (p_font_color_shadow.a > 0) {
-										float x_ofs_shadow = align_ofs + pofs;
-										float y_ofs_shadow = y + lh - line_descent;
-										font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + shadow_ofs + fx_offset, fx_char, c[i + 1], p_font_color_shadow);
+									if (fgcolor.a == 0) {
+										if (p_font_color_shadow.a > 0) {
+											float x_ofs_shadow = align_ofs + pofs;
+											float y_ofs_shadow = y + lh - line_descent;
+											font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + shadow_ofs + fx_offset, fx_char, c[i + 1], p_font_color_shadow);
 
-										if (p_shadow_as_outline) {
-											font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + Vector2(-shadow_ofs.x, shadow_ofs.y) + fx_offset, fx_char, c[i + 1], p_font_color_shadow);
-											font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + Vector2(shadow_ofs.x, -shadow_ofs.y) + fx_offset, fx_char, c[i + 1], p_font_color_shadow);
-											font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + Vector2(-shadow_ofs.x, -shadow_ofs.y) + fx_offset, fx_char, c[i + 1], p_font_color_shadow);
+											if (p_shadow_as_outline) {
+												font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + Vector2(-shadow_ofs.x, shadow_ofs.y) + fx_offset, fx_char, c[i + 1], p_font_color_shadow);
+												font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + Vector2(shadow_ofs.x, -shadow_ofs.y) + fx_offset, fx_char, c[i + 1], p_font_color_shadow);
+												font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + Vector2(-shadow_ofs.x, -shadow_ofs.y) + fx_offset, fx_char, c[i + 1], p_font_color_shadow);
+											}
 										}
-									}
 
-									if (selected) {
-										drawer.draw_char(ci, p_ofs + Point2(align_ofs + pofs, y + lh - line_descent), fx_char, c[i + 1], override_selected_font_color ? selection_fg : fx_color);
-									} else {
-										cw = drawer.draw_char(ci, p_ofs + Point2(align_ofs + pofs, y + lh - line_descent) + fx_offset, fx_char, c[i + 1], fx_color);
+										if (selected) {
+											drawer.draw_char(ci, p_ofs + Point2(align_ofs + pofs, y + lh - line_descent), fx_char, c[i + 1], override_selected_font_color ? selection_fg : fx_color);
+										} else {
+											cw = drawer.draw_char(ci, p_ofs + Point2(align_ofs + pofs, y + lh - line_descent) + fx_offset, fx_char, c[i + 1], fx_color);
+										}
 									}
 								}
 
@@ -581,24 +598,26 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 							}
 						}
 
-						if (underline) {
-							Color uc = color;
-							uc.a *= 0.5;
-							int uy = y + lh - line_descent + 2;
-							float underline_width = 1.0;
+						if (fgcolor.a == 0) {
+							if (underline) {
+								Color uc = color;
+								uc.a *= 0.5;
+								int uy = y + lh - line_descent + 2;
+								float underline_width = 1.0;
 #ifdef TOOLS_ENABLED
-							underline_width *= EDSCALE;
+								underline_width *= EDSCALE;
 #endif
-							VS::get_singleton()->canvas_item_add_line(ci, p_ofs + Point2(align_ofs + wofs, uy), p_ofs + Point2(align_ofs + wofs + w, uy), uc, underline_width);
-						} else if (strikethrough) {
-							Color uc = color;
-							uc.a *= 0.5;
-							int uy = y + lh / 2 - line_descent + 2;
-							float strikethrough_width = 1.0;
+								VS::get_singleton()->canvas_item_add_line(ci, p_ofs + Point2(align_ofs + wofs, uy), p_ofs + Point2(align_ofs + wofs + w, uy), uc, underline_width);
+							} else if (strikethrough) {
+								Color uc = color;
+								uc.a *= 0.5;
+								int uy = y + lh / 2 - line_descent + 2;
+								float strikethrough_width = 1.0;
 #ifdef TOOLS_ENABLED
-							strikethrough_width *= EDSCALE;
+								strikethrough_width *= EDSCALE;
 #endif
-							VS::get_singleton()->canvas_item_add_line(ci, p_ofs + Point2(align_ofs + wofs, uy), p_ofs + Point2(align_ofs + wofs + w, uy), uc, strikethrough_width);
+								VS::get_singleton()->canvas_item_add_line(ci, p_ofs + Point2(align_ofs + wofs, uy), p_ofs + Point2(align_ofs + wofs + w, uy), uc, strikethrough_width);
+							}
 						}
 					}
 
@@ -1473,6 +1492,42 @@ bool RichTextLabel::_find_meta(Item *p_item, Variant *r_meta, ItemMeta **r_item)
 	return false;
 }
 
+Color RichTextLabel::_find_bgcolor(Item *p_item) {
+
+	Item *item = p_item;
+
+	while (item) {
+
+		if (item->type == ITEM_BGCOLOR) {
+
+			ItemBGColor *color = static_cast<ItemBGColor *>(item);
+			return color->color;
+		}
+
+		item = item->parent;
+	}
+
+	return Color(0, 0, 0, 0);
+}
+
+Color RichTextLabel::_find_fgcolor(Item *p_item) {
+
+	Item *item = p_item;
+
+	while (item) {
+
+		if (item->type == ITEM_FGCOLOR) {
+
+			ItemFGColor *color = static_cast<ItemFGColor *>(item);
+			return color->color;
+		}
+
+		item = item->parent;
+	}
+
+	return Color(0, 0, 0, 0);
+}
+
 bool RichTextLabel::_find_layout_subitem(Item *from, Item *to) {
 
 	if (from && from != to) {
@@ -1882,6 +1937,24 @@ void RichTextLabel::push_rainbow(float p_saturation, float p_value, float p_freq
 	_add_item(item, true);
 }
 
+void RichTextLabel::push_bgcolor(const Color &p_color) {
+
+	ERR_FAIL_COND(current->type == ITEM_TABLE);
+	ItemBGColor *item = memnew(ItemBGColor);
+
+	item->color = p_color;
+	_add_item(item, true);
+}
+
+void RichTextLabel::push_fgcolor(const Color &p_color) {
+
+	ERR_FAIL_COND(current->type == ITEM_TABLE);
+	ItemFGColor *item = memnew(ItemFGColor);
+
+	item->color = p_color;
+	_add_item(item, true);
+}
+
 void RichTextLabel::push_customfx(Ref<RichTextEffect> p_custom_effect, Dictionary p_environment) {
 	ItemCustomFX *item = memnew(ItemCustomFX);
 	item->custom_effect = p_custom_effect;
@@ -2025,8 +2098,6 @@ Error RichTextLabel::append_bbcode(const String &p_bbcode) {
 	Ref<Font> italics_font = get_font("italics_font");
 	Ref<Font> bold_italics_font = get_font("bold_italics_font");
 	Ref<Font> mono_font = get_font("mono_font");
-
-	Color base_color = get_color("default_color");
 
 	int indent_level = 0;
 
@@ -2234,44 +2305,7 @@ Error RichTextLabel::append_bbcode(const String &p_bbcode) {
 		} else if (tag.begins_with("color=")) {
 
 			String col = tag.substr(6, tag.length());
-			Color color;
-
-			if (col.begins_with("#"))
-				color = Color::html(col);
-			else if (col == "aqua")
-				color = Color(0, 1, 1);
-			else if (col == "black")
-				color = Color(0, 0, 0);
-			else if (col == "blue")
-				color = Color(0, 0, 1);
-			else if (col == "fuchsia")
-				color = Color(1, 0, 1);
-			else if (col == "gray" || col == "grey")
-				color = Color(0.5, 0.5, 0.5);
-			else if (col == "green")
-				color = Color(0, 0.5, 0);
-			else if (col == "lime")
-				color = Color(0, 1, 0);
-			else if (col == "maroon")
-				color = Color(0.5, 0, 0);
-			else if (col == "navy")
-				color = Color(0, 0, 0.5);
-			else if (col == "olive")
-				color = Color(0.5, 0.5, 0);
-			else if (col == "purple")
-				color = Color(0.5, 0, 0.5);
-			else if (col == "red")
-				color = Color(1, 0, 0);
-			else if (col == "silver")
-				color = Color(0.75, 0.75, 0.75);
-			else if (col == "teal")
-				color = Color(0, 0.5, 0.5);
-			else if (col == "white")
-				color = Color(1, 1, 1);
-			else if (col == "yellow")
-				color = Color(1, 1, 0);
-			else
-				color = base_color;
+			Color color = parse_color(col);
 
 			push_color(color);
 			pos = brk_end + 1;
@@ -2408,6 +2442,23 @@ Error RichTextLabel::append_bbcode(const String &p_bbcode) {
 			pos = brk_end + 1;
 			tag_stack.push_front("rainbow");
 			set_process_internal(true);
+
+		} else if (tag.begins_with("bgcolor=")) {
+			String col = tag.substr(8, tag.length());
+			Color color = parse_color(col);
+
+			push_bgcolor(color);
+			pos = brk_end + 1;
+			tag_stack.push_front("bgcolor");
+
+		} else if (tag.begins_with("fgcolor=")) {
+			String col = tag.substr(8, tag.length());
+			Color color = parse_color(col);
+
+			push_fgcolor(color);
+			pos = brk_end + 1;
+			tag_stack.push_front("fgcolor");
+
 		} else {
 			Vector<String> expr = tag.split(" ", false);
 			if (expr.size() < 1) {
@@ -2698,6 +2749,8 @@ void RichTextLabel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("push_table", "columns"), &RichTextLabel::push_table);
 	ClassDB::bind_method(D_METHOD("set_table_column_expand", "column", "expand", "ratio"), &RichTextLabel::set_table_column_expand);
 	ClassDB::bind_method(D_METHOD("push_cell"), &RichTextLabel::push_cell);
+	ClassDB::bind_method(D_METHOD("push_fgcolor", "fgcolor"), &RichTextLabel::push_fgcolor);
+	ClassDB::bind_method(D_METHOD("push_bgcolor", "bgcolor"), &RichTextLabel::push_bgcolor);
 	ClassDB::bind_method(D_METHOD("pop"), &RichTextLabel::pop);
 
 	ClassDB::bind_method(D_METHOD("clear"), &RichTextLabel::clear);
@@ -2752,6 +2805,8 @@ void RichTextLabel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_effects"), &RichTextLabel::get_effects);
 	ClassDB::bind_method(D_METHOD("install_effect", "effect"), &RichTextLabel::install_effect);
 
+	ClassDB::bind_method(D_METHOD("parse_color"), &RichTextLabel::parse_color);
+
 	ADD_GROUP("BBCode", "bbcode_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "bbcode_enabled"), "set_use_bbcode", "is_using_bbcode");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "bbcode_text", PROPERTY_HINT_MULTILINE_TEXT), "set_bbcode", "get_bbcode");
@@ -2802,6 +2857,8 @@ void RichTextLabel::_bind_methods() {
 	BIND_ENUM_CONSTANT(ITEM_TORNADO);
 	BIND_ENUM_CONSTANT(ITEM_RAINBOW);
 	BIND_ENUM_CONSTANT(ITEM_CUSTOMFX);
+	BIND_ENUM_CONSTANT(ITEM_FGCOLOR);
+	BIND_ENUM_CONSTANT(ITEM_BGCOLOR);
 	BIND_ENUM_CONSTANT(ITEM_META);
 }
 
@@ -2905,6 +2962,19 @@ Dictionary RichTextLabel::parse_expressions_for_values(Vector<String> p_expressi
 		}
 	}
 	return d;
+}
+
+Color RichTextLabel::parse_color(const String &p_color) {
+	Color color;
+
+	if (Color::html_is_valid(p_color))
+		color = Color::html(p_color);
+	else if (Color::named_is_valid(p_color))
+		color = Color::named(p_color);
+	else
+		color = get_color("default_color");
+
+	return color;
 }
 
 RichTextLabel::RichTextLabel() {
