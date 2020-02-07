@@ -32,8 +32,10 @@
 #define FONT_H
 
 #include "core/map.h"
+#include "core/math/transform_2d.h"
 #include "core/resource.h"
 #include "scene/resources/texture.h"
+#include <iostream>
 
 class Font : public Resource {
 
@@ -54,11 +56,11 @@ public:
 
 	virtual bool is_distance_field_hint() const = 0;
 
-	void draw(RID p_canvas_item, const Point2 &p_pos, const String &p_text, const Color &p_modulate = Color(1, 1, 1), int p_clip_w = -1, const Color &p_outline_modulate = Color(1, 1, 1)) const;
+	void draw(RID p_canvas_item, const Point2 &p_pos, const String &p_text, const Color &p_modulate = Color(1, 1, 1), int p_clip_w = -1, const Color &p_outline_modulate = Color(1, 1, 1), const Transform2D &p_transform = Transform2D()) const;
 	void draw_halign(RID p_canvas_item, const Point2 &p_pos, HAlign p_align, float p_width, const String &p_text, const Color &p_modulate = Color(1, 1, 1), const Color &p_outline_modulate = Color(1, 1, 1)) const;
 
 	virtual bool has_outline() const { return false; }
-	virtual float draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_char, CharType p_next = 0, const Color &p_modulate = Color(1, 1, 1), bool p_outline = false) const = 0;
+	virtual float draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_char, CharType p_next = 0, const Color &p_modulate = Color(1, 1, 1), bool p_outline = false, const Transform2D &p_transform = Transform2D()) const = 0;
 
 	void update_changes();
 	Font();
@@ -87,12 +89,12 @@ public:
 		has_outline = p_font->has_outline();
 	}
 
-	float draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_char, CharType p_next = 0, const Color &p_modulate = Color(1, 1, 1)) {
+	float draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_char, CharType p_next = 0, const Color &p_modulate = Color(1, 1, 1), const Transform2D &p_transform = Transform2D()) {
 		if (has_outline) {
 			PendingDraw draw = { p_canvas_item, p_pos, p_char, p_next, p_modulate };
 			pending_draws.push_back(draw);
 		}
-		return font->draw_char(p_canvas_item, p_pos, p_char, p_next, has_outline ? outline_color : p_modulate, has_outline);
+		return font->draw_char(p_canvas_item, p_pos, p_char, p_next, has_outline ? outline_color : p_modulate, has_outline, p_transform);
 	}
 
 	~FontDrawer() {
@@ -192,7 +194,7 @@ public:
 	void set_distance_field_hint(bool p_distance_field);
 	bool is_distance_field_hint() const;
 
-	float draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_char, CharType p_next = 0, const Color &p_modulate = Color(1, 1, 1), bool p_outline = false) const;
+	float draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_char, CharType p_next = 0, const Color &p_modulate = Color(1, 1, 1), bool p_outline = false, const Transform2D &p_transform = Transform2D()) const;
 
 	BitmapFont();
 	~BitmapFont();

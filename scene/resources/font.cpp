@@ -59,7 +59,7 @@ void Font::draw_halign(RID p_canvas_item, const Point2 &p_pos, HAlign p_align, f
 	draw(p_canvas_item, p_pos + Point2(ofs, 0), p_text, p_modulate, p_width, p_outline_modulate);
 }
 
-void Font::draw(RID p_canvas_item, const Point2 &p_pos, const String &p_text, const Color &p_modulate, int p_clip_w, const Color &p_outline_modulate) const {
+void Font::draw(RID p_canvas_item, const Point2 &p_pos, const String &p_text, const Color &p_modulate, int p_clip_w, const Color &p_outline_modulate, const Transform2D &p_transform) const {
 	Vector2 ofs;
 
 	int chars_drawn = 0;
@@ -71,14 +71,14 @@ void Font::draw(RID p_canvas_item, const Point2 &p_pos, const String &p_text, co
 		if (p_clip_w >= 0 && (ofs.x + width) > p_clip_w)
 			break; //clip
 
-		ofs.x += draw_char(p_canvas_item, p_pos + ofs, p_text[i], p_text[i + 1], with_outline ? p_outline_modulate : p_modulate, with_outline);
+		ofs.x += draw_char(p_canvas_item, p_pos + ofs, p_text[i], p_text[i + 1], with_outline ? p_outline_modulate : p_modulate, with_outline, p_transform);
 		++chars_drawn;
 	}
 
 	if (has_outline()) {
 		ofs = Vector2(0, 0);
 		for (int i = 0; i < chars_drawn; i++) {
-			ofs.x += draw_char(p_canvas_item, p_pos + ofs, p_text[i], p_text[i + 1], p_modulate, false);
+			ofs.x += draw_char(p_canvas_item, p_pos + ofs, p_text[i], p_text[i + 1], p_modulate, false, p_transform);
 		}
 	}
 }
@@ -98,7 +98,7 @@ void Font::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_string_size", "string"), &Font::get_string_size);
 	ClassDB::bind_method(D_METHOD("get_wordwrap_string_size", "string", "width"), &Font::get_wordwrap_string_size);
 	ClassDB::bind_method(D_METHOD("has_outline"), &Font::has_outline);
-	ClassDB::bind_method(D_METHOD("draw_char", "canvas_item", "position", "char", "next", "modulate", "outline"), &Font::draw_char, DEFVAL(-1), DEFVAL(Color(1, 1, 1)), DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("draw_char", "canvas_item", "position", "char", "next", "modulate", "outline", "transform"), &Font::draw_char, DEFVAL(-1), DEFVAL(Color(1, 1, 1)), DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("update_changes"), &Font::update_changes);
 }
 
@@ -540,13 +540,13 @@ Ref<BitmapFont> BitmapFont::get_fallback() const {
 	return fallback;
 }
 
-float BitmapFont::draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_char, CharType p_next, const Color &p_modulate, bool p_outline) const {
+float BitmapFont::draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_char, CharType p_next, const Color &p_modulate, bool p_outline, const Transform2D &p_transform) const {
 
 	const Character *c = char_map.getptr(p_char);
 
 	if (!c) {
 		if (fallback.is_valid())
-			return fallback->draw_char(p_canvas_item, p_pos, p_char, p_next, p_modulate, p_outline);
+			return fallback->draw_char(p_canvas_item, p_pos, p_char, p_next, p_modulate, p_outline, p_transform);
 		return 0;
 	}
 
@@ -556,6 +556,7 @@ float BitmapFont::draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_c
 		cpos.x += c->h_align;
 		cpos.y -= ascent;
 		cpos.y += c->v_align;
+		VisualServer::get_singleton()->canvas_item_add_set_transform(p_canvas_item, p_transform);
 		VisualServer::get_singleton()->canvas_item_add_texture_rect_region(p_canvas_item, Rect2(cpos, c->rect.size), textures[c->texture_idx]->get_rid(), c->rect, p_modulate, false, RID(), false);
 	}
 

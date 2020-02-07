@@ -34,6 +34,7 @@
 #include "core/os/os.h"
 
 #include FT_STROKER_H
+#include <iostream>
 
 #define __STDC_LIMIT_MACROS
 #include <stdint.h>
@@ -307,6 +308,10 @@ void DynamicFontAtSize::set_texture_flags(uint32_t p_flags) {
 }
 
 float DynamicFontAtSize::draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_char, CharType p_next, const Color &p_modulate, const Vector<Ref<DynamicFontAtSize> > &p_fallbacks, bool p_advance_only, bool p_outline) const {
+	return draw_char(p_canvas_item, p_pos, p_char, p_next, p_modulate, Transform2D(), p_fallbacks, p_advance_only, p_outline);
+}
+
+float DynamicFontAtSize::draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_char, CharType p_next, const Color &p_modulate, const Transform2D &p_transform, const Vector<Ref<DynamicFontAtSize> > &p_fallbacks, bool p_advance_only, bool p_outline) const {
 
 	if (!valid)
 		return 0;
@@ -324,6 +329,12 @@ float DynamicFontAtSize::draw_char(RID p_canvas_item, const Point2 &p_pos, CharT
 	// use normal character size if there's no outline character
 	if (p_outline && !ch->found) {
 		FT_GlyphSlot slot = face->glyph;
+		FT_Matrix matrix;
+		matrix.xx = (FT_Fixed)(p_transform.get_axis(0).x);
+		matrix.xy = (FT_Fixed)(p_transform.get_axis(0).y);
+		matrix.yx = (FT_Fixed)(p_transform.get_axis(1).x);
+		matrix.yy = (FT_Fixed)(p_transform.get_axis(1).y);
+		FT_Set_Transform(face, &matrix, NULL);
 		int error = FT_Load_Char(face, p_char, FT_HAS_COLOR(face) ? FT_LOAD_COLOR : FT_LOAD_DEFAULT);
 		if (!error) {
 			error = FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
@@ -348,6 +359,7 @@ float DynamicFontAtSize::draw_char(RID p_canvas_item, const Point2 &p_pos, CharT
 				modulate.r = modulate.g = modulate.b = 1.0;
 			}
 			RID texture = font->textures[ch->texture_idx].texture->get_rid();
+			VisualServer::get_singleton()->canvas_item_add_set_transform(p_canvas_item, p_transform);
 			VisualServer::get_singleton()->canvas_item_add_texture_rect_region(p_canvas_item, Rect2(cpos, ch->rect.size), texture, ch->rect_uv, modulate, false, RID(), false);
 		}
 
@@ -885,7 +897,7 @@ bool DynamicFont::has_outline() const {
 	return outline_cache_id.outline_size > 0;
 }
 
-float DynamicFont::draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_char, CharType p_next, const Color &p_modulate, bool p_outline) const {
+float DynamicFont::draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_char, CharType p_next, const Color &p_modulate, bool p_outline, const Transform2D &p_transform) const {
 	const Ref<DynamicFontAtSize> &font_at_size = p_outline && outline_cache_id.outline_size > 0 ? outline_data_at_size : data_at_size;
 
 	if (!font_at_size.is_valid())
@@ -896,7 +908,7 @@ float DynamicFont::draw_char(RID p_canvas_item, const Point2 &p_pos, CharType p_
 
 	// If requested outline draw, but no outline is present, simply return advance without drawing anything
 	bool advance_only = p_outline && outline_cache_id.outline_size == 0;
-	return font_at_size->draw_char(p_canvas_item, p_pos, p_char, p_next, color, fallbacks, advance_only, p_outline) + spacing_char;
+	return font_at_size->draw_char(p_canvas_item, p_pos, p_char, p_next, color, p_transform, fallbacks, advance_only, p_outline) + spacing_char;
 }
 
 void DynamicFont::set_fallback(int p_idx, const Ref<DynamicFontData> &p_data) {
