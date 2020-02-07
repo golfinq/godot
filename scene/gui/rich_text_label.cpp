@@ -35,8 +35,12 @@
 #include "core/os/os.h"
 #include "modules/regex/regex.h"
 #include "scene/scene_string_names.h"
+
+#include "scene/resources/dynamic_font.h"
+
 #ifdef TOOLS_ENABLED
 #include "editor/editor_scale.h"
+#include <iostream>
 #endif
 
 RichTextLabel::Item *RichTextLabel::_get_next_item(Item *p_item, bool p_free) {
@@ -460,6 +464,8 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 								Point2 fx_offset;
 								CharType fx_char = c[i];
 
+								Transform2D fx_transform = Transform2D();
+
 								if (selection.active) {
 
 									int cofs = (&c[i]) - cf;
@@ -500,6 +506,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 											charfx->offset = fx_offset;
 											charfx->color = fx_color;
 											charfx->character = fx_char;
+											charfx->transform = fx_transform;
 
 											bool effect_status = custom_effect->_process_effect_impl(charfx);
 											custom_fx_ok = effect_status;
@@ -508,6 +515,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 											fx_color = charfx->color;
 											visible &= charfx->visibility;
 											fx_char = charfx->character;
+											fx_transform = charfx->transform;
 										}
 									} else if (item_fx->type == ITEM_SHAKE) {
 										ItemShake *item_shake = static_cast<ItemShake *>(item_fx);
@@ -572,19 +580,19 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 										if (p_font_color_shadow.a > 0) {
 											float x_ofs_shadow = align_ofs + pofs;
 											float y_ofs_shadow = y + lh - line_descent;
-											font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + shadow_ofs + fx_offset, fx_char, c[i + 1], p_font_color_shadow);
+											font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + shadow_ofs + fx_offset, fx_char, c[i + 1], p_font_color_shadow, false, fx_transform);
 
 											if (p_shadow_as_outline) {
-												font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + Vector2(-shadow_ofs.x, shadow_ofs.y) + fx_offset, fx_char, c[i + 1], p_font_color_shadow);
-												font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + Vector2(shadow_ofs.x, -shadow_ofs.y) + fx_offset, fx_char, c[i + 1], p_font_color_shadow);
-												font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + Vector2(-shadow_ofs.x, -shadow_ofs.y) + fx_offset, fx_char, c[i + 1], p_font_color_shadow);
+												font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + Vector2(-shadow_ofs.x, shadow_ofs.y) + fx_offset, fx_char, c[i + 1], p_font_color_shadow, false, fx_transform);
+												font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + Vector2(shadow_ofs.x, -shadow_ofs.y) + fx_offset, fx_char, c[i + 1], p_font_color_shadow, false, fx_transform);
+												font->draw_char(ci, Point2(x_ofs_shadow, y_ofs_shadow) + Vector2(-shadow_ofs.x, -shadow_ofs.y) + fx_offset, fx_char, c[i + 1], p_font_color_shadow, false, fx_transform);
 											}
 										}
 
 										if (selected) {
-											drawer.draw_char(ci, p_ofs + Point2(align_ofs + pofs, y + lh - line_descent), fx_char, c[i + 1], override_selected_font_color ? selection_fg : fx_color);
+											drawer.draw_char(ci, p_ofs + Point2(align_ofs + pofs, y + lh - line_descent), fx_char, c[i + 1], override_selected_font_color ? selection_fg : fx_color, fx_transform);
 										} else {
-											cw = drawer.draw_char(ci, p_ofs + Point2(align_ofs + pofs, y + lh - line_descent) + fx_offset, fx_char, c[i + 1], fx_color);
+											cw = drawer.draw_char(ci, p_ofs + Point2(align_ofs + pofs, y + lh - line_descent) + fx_offset, fx_char, c[i + 1], fx_color, fx_transform);
 										}
 									}
 								}
@@ -2969,9 +2977,10 @@ Color RichTextLabel::parse_color(const String &p_color) {
 
 	if (Color::html_is_valid(p_color))
 		color = Color::html(p_color);
-	else if (Color::named_is_valid(p_color))
-		color = Color::named(p_color);
 	else
+		color = Color::named(p_color);
+
+	if (color == Color() && p_color != "black" && p_color != "#000000")
 		color = get_color("default_color");
 
 	return color;

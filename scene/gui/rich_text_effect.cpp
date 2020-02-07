@@ -89,6 +89,9 @@ void CharFXTransform::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_character"), &CharFXTransform::get_character);
 	ClassDB::bind_method(D_METHOD("set_character", "character"), &CharFXTransform::set_character);
 
+	ClassDB::bind_method(D_METHOD("get_transform"), &CharFXTransform::get_transform);
+	ClassDB::bind_method(D_METHOD("set_transform", "transform"), &CharFXTransform::set_transform);
+
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "relative_index"), "set_relative_index", "get_relative_index");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "absolute_index"), "set_absolute_index", "get_absolute_index");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "elapsed_time"), "set_elapsed_time", "get_elapsed_time");
@@ -107,6 +110,7 @@ CharFXTransform::CharFXTransform() {
 	color = Color();
 	character = 0;
 	elapsed_time = 0.0f;
+	transform = Transform2D();
 }
 
 CharFXTransform::~CharFXTransform() {

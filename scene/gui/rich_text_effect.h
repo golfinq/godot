@@ -61,6 +61,7 @@ public:
 	Color color;
 	CharType character;
 	float elapsed_time;
+	Transform2D transform;
 	Dictionary environment;
 
 	CharFXTransform();
@@ -82,6 +83,8 @@ public:
 	void set_character(int p_char) { character = (CharType)p_char; }
 	Dictionary get_environment() { return environment; }
 	void set_environment(Dictionary p_environment) { environment = p_environment; }
+	Transform2D get_transform() { return transform; }
+	void set_transform(Transform2D p_transform) { transform = p_transform; }
 };
 
 #endif // RICH_TEXT_EFFECT_H
