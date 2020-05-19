@@ -410,6 +410,20 @@ Color Color::named(const String &p_name) {
 	return color->value();
 }
 
+bool Color::named_is_valid(const String &p_name) {
+	if (_named_colors.empty()) _populate_named_colors(); // from color_names.inc
+	String name = p_name;
+	// Normalize name
+	name = name.replace(" ", "");
+	name = name.replace("-", "");
+	name = name.replace("_", "");
+	name = name.replace("'", "");
+	name = name.replace(".", "");
+	name = name.to_lower();
+
+	return _named_colors.has(name);
+}
+
 String _to_hex(float p_val) {
 	int v = Math::round(p_val * 255);
 	v = CLAMP(v, 0, 255);
